@@ -11,10 +11,20 @@ app.use(cors());
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// MongoDB Connection
-mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('MongoDB Connected'))
-  .catch(err => console.log('MongoDB Error:', err));
+// MongoDB Connection (Only initialize ONCE in serverless)
+let isConnected = false;
+
+async function connectDB() {
+  if (isConnected) return;
+  try {
+    await mongoose.connect(process.env.MONGODB_URI);
+    console.log("MongoDB Connected");
+    isConnected = true;
+  } catch (err) {
+    console.log("MongoDB Error:", err);
+  }
+}
+connectDB();
 
 // Debug middleware to log all requests
 app.use((req, res, next) => {
@@ -32,7 +42,6 @@ app.use('/api/projects', require('./routes/projects'));
 app.use('/api/leads', require('./routes/leads'));
 app.use('/api/auth', require('./routes/auth'));
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+// ❌ STOP — NO app.listen() ON VERCEL
+// Instead export the app:
+module.exports = app;
